@@ -86,17 +86,18 @@ const QualityCheckAgent = new Agent({
 
 export const qualityCheckResult = async (deckJSON: string) => {
     const result = await run(QualityCheckAgent, deckJSON)
-    return result;
+    return result?.finalOutput;
 };
 export const validateOutputGuardrails: OutputGuardrail = {
-    name: "output-length-guardrail",
+    name: "output-guardrail",
     execute: async ({ agentOutput }) => {
-        const deckJSON = getInput(agentOutput).trim();
+        const deckJSON = JSON.stringify(agentOutput).trim();
         const result = await qualityCheckResult(deckJSON);
-        const isValid = QualityCheckSchema.parse(result.finalOutput as unknown).isValid;
+        const isValid = QualityCheckSchema.parse(result).isValid;
+        const reason = result?.reason ? result?.reason : "Invalid pitch deck. Please check the pitch deck and try again.";
         return {
-           tripwireTriggered: result.finalOutput,
-           outputInfo: isValid ? undefined : { reason: isValid?.reason ?? "Invalid pitch deck. Please check the pitch deck and try again." },
-        };
-    }
+            tripwireTriggered: isValid,
+            outputInfo: isValid ? undefined : reason,
+        }
+    },
 };
