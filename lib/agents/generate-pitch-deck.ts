@@ -1,3 +1,4 @@
+import { PitchDeck, PitchDeckSchema } from "../schemas/pitch-deck-schema";
 import { pitchDeckAgent } from "./pitch-deck-agent";
 import {InputGuardrailTripwireTriggered, OutputGuardrailTripwireTriggered, run} from "@openai/agents";
 
@@ -30,12 +31,14 @@ function getGuardrailErrorReason(error: unknown):string {
 
 //parse the agent result according to the schema -TO-DO: Implement this
 
-
+function ParseAgentResult(result: any): PitchDeck {
+    return PitchDeckSchema.parse(result);
+}
 export async function generatePitchDeck(idea: string) {
     try{
         const agentResult = await run(pitchDeckAgent, idea);
         console.log("GENERATE PITCH DECK AGENT RESULT",agentResult);
-        return agentResult;
+        return ParseAgentResult(agentResult.finalOutput);
     }
     catch(error:unknown){
        //if error is an instance of guardrail error, then throw a new error with the guardrail error reason

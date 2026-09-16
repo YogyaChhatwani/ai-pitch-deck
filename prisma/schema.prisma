@@ -36,6 +36,7 @@ model Slide {
   deckId String
   deck Deck @relation(fields: [deckId], references: [id])
   title String
+  order Int
   content String
   createdAt DateTime @default(now())
   imageUrl String?
