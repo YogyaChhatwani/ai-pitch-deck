@@ -1,4 +1,4 @@
-export type DeckStatus = "PENDING" | "GENERATING" | "COMPLETE" | "FAILED";
+export type DeckStatus = "PENDING" | "GENERATING" | "COMPLETED" | "FAILED" | "GENERATED";
 
 export type Slide = {
   id: string;

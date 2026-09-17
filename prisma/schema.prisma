@@ -22,23 +22,22 @@ enum DeckStatus {
 
 
 model Deck {
-  id String @id @default(uuid())
-  status DeckStatus @default(PENDING)
-  title String?
-  idea String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  Slides Slide[]
+  id        String     @id @default(uuid())
+  status    DeckStatus @default(PENDING)
+  title     String?
+  idea      String
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  Slides    Slide[]
 }
 
 model Slide {
-  id String @id @default(uuid())
-  deckId String
-  deck Deck @relation(fields: [deckId], references: [id])
-  title String
-  order Int
-  content String
+  id        String   @id @default(uuid())
+  deckId    String
+  deck      Deck     @relation(fields: [deckId], references: [id])
+  title     String
+  order     Int
+  content   String
   createdAt DateTime @default(now())
-  imageUrl String?
-  
+  imageUrl  String?
 }
