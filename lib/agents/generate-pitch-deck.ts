@@ -1,5 +1,6 @@
 import { PitchDeck, PitchDeckSchema } from "../schemas/pitch-deck-schema";
 import { pitchDeckAgent } from "./pitch-deck-agent";
+import { parseJsonObject } from "./parse-json";
 import {InputGuardrailTripwireTriggered, OutputGuardrailTripwireTriggered, run} from "@openai/agents";
 
 class generatePitchDeckError extends Error {
@@ -31,8 +32,8 @@ function getGuardrailErrorReason(error: unknown):string {
 
 //parse the agent result according to the schema -TO-DO: Implement this
 
-function ParseAgentResult(result: any): PitchDeck {
-    return PitchDeckSchema.parse(result);
+function ParseAgentResult(result: unknown): PitchDeck {
+    return PitchDeckSchema.parse(parseJsonObject(result));
 }
 export async function generatePitchDeck(idea: string) {
     try{

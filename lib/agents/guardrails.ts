@@ -1,5 +1,6 @@
 import { Agent, type InputGuardrail, type OutputGuardrail, run } from "@openai/agents";
 import { z } from "zod";
+import { parseJsonObject } from "./parse-json";
 
 const getInput = (input: string | unknown[]): string => {
     if (typeof input === "string") {
@@ -28,15 +29,18 @@ const QualityCheckSchema = z.object({
 const QUALITY_CHECK_INSTRUCTIONS = `
 You are an expert quality check agent.
 You are given a pitch deck JSON. you need to check if it is of good quality and is relevant to the project idea.
-Output the result in the following schema - ${QualityCheckSchema}
+Output the result in the following schema -
 {
-    isValid: boolean,
-    reason: string | undefined,
+    "isValid": true
 }
+    or
+    {
+        "isValid": false,
+        "reason": "reason for invalidity"
+    }
 Return isValid: false if it has any -
 - inappropriate words or phrases.
 -phrases with placeholder text like TBD,{INSERT_HERE},etc.
-- slides with no images .
 - any other reason that is not relevant to the project idea.
 
 Give a precise reason for the same in case of invalidity
@@ -51,13 +55,14 @@ Response : "{
         {
             "title": "A platform that allows users to create and share their own Food recipes and get paid for it.",
             "content": "Create and share your own Food recipes and get paid for it.",
-            imagePrompt:"Generate an image of a food recipe and the food items in the recipe",
+            "imagePrompt":"Generate an image of a food recipe and the food items in the recipe"
         }
     ]
 }"
-Output : {
-    isValid: true,
-    reason: undefined,
+Output : 
+{
+    "isValid": true,
+    "reason": "..."
 }
 Example 2:
 Project Idea : " A platform that allows users to create and share their own Food recipes and get paid for it."
@@ -67,13 +72,13 @@ Response : "{
         {
             "title": "A platform to create and add your images",
             "content": "Create and add your images",
-            imagePrompt:"Generate an image of a person taking a selfie",
+            "imagePrompt":"Generate an image of a person taking a selfie"
         }
     ]
 }"
 Output : {
-    isValid: false,
-    reason: "Response is not relevant to the project idea",
+    "isValid": false,
+    "reason": "Response is not relevant to the project idea"
 }
 
 `;
@@ -81,23 +86,36 @@ Output : {
 const QualityCheckAgent = new Agent({
     name: "Quality Check Agent",
     instructions: QUALITY_CHECK_INSTRUCTIONS,
-    model: "gpt-4o-mini",
+    model: "gpt-4o-mini"
 })
 
 export const qualityCheckResult = async (deckJSON: string) => {
-    const result = await run(QualityCheckAgent, deckJSON)
-    return result?.finalOutput;
+    try {
+        const result = await run(QualityCheckAgent, deckJSON);
+        console.log("result in qualityCheckResult1---------->", result);
+        const resultJSON = parseJsonObject(result?.finalOutput);
+        console.log("resultJSON in qualityCheckResult2---------->", resultJSON);
+        return QualityCheckSchema.parse(resultJSON);
+    }
+    catch (error) {
+        console.log("error in qualityCheckResult---------->", error);
+        return {
+            isValid: false,
+            reason: "Invalid pitch deck. Please check the pitch deck and try again."
+        }
+    }
+
 };
 export const validateOutputGuardrails: OutputGuardrail = {
     name: "output-guardrail",
     execute: async ({ agentOutput }) => {
+        console.log("agentOutput---------->", agentOutput);
         const deckJSON = JSON.stringify(agentOutput).trim();
-        const result = await qualityCheckResult(deckJSON);
-        const isValid = QualityCheckSchema.parse(result).isValid;
-        const reason = result?.reason ? result?.reason : "Invalid pitch deck. Please check the pitch deck and try again.";
+        const { isValid, reason } = await qualityCheckResult(deckJSON);
+        console.log("isValid,reason---------->", isValid, reason);
         return {
-            tripwireTriggered: isValid,
-            outputInfo: isValid ? undefined : reason,
+            tripwireTriggered: !isValid,
+            outputInfo: isValid ? undefined : { reason: reason || "Invalid pitch deck. Please check the pitch deck and try again." },
         }
     },
 };
